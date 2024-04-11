@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 Control Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Add custom style for disabled button */
+        #toggle-button[disabled] {
+            background-color: #cccccc; /* Gray color */
+            cursor: not-allowed; /* Change cursor to indicate it's disabled */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-4">
+
+    <div class="max-w-xl mx-auto">
+
+        <!-- Moisture Level -->
+        <div class="mb-4">
+            <h1 class="text-xl font-bold mb-2">Moisture Level:</h1>
+            <p id="moisture-level" class="text-lg font-semibold">Loading...</p>
+        </div>
+
+        <!-- Pump Control -->
+        <div class="mb-4">
+            <h2 class="text-xl font-bold mb-2">Pump Control:</h2>
+            <button id="toggle-button" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Turn On Pump</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Define the IP address of your ESP8266 backend
+        const backendUrl = 'http://192.168.0.131';
+
+        // Function to fetch moisture level and update UI
+        async function fetchMoistureLevel() {
+            try {
+                const response = await fetch(`${backendUrl}/`);
+                const data = await response.text();
+                document.getElementById('moisture-level').textContent = data;
+            } catch (error) {
+                console.error('Error fetching moisture level:', error);
+            }
+        }
+
+        // Function to toggle pump state
+        async function togglePump() {
+            try {
+                // Disable the button
+                document.getElementById('toggle-button').disabled = true;
+
+                // Determine the URL based on the current pump state
+                const currentState = document.getElementById('toggle-button').textContent;
+                const url = currentState === 'Turn On Pump' ? `${backendUrl}/relay-on` : `${backendUrl}/relay-off`;
+
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.text();
+                console.log(data);
+
+                // Re-enable the button after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('toggle-button').disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Error toggling pump:', error);
+                // Re-enable the button in case of error
+                document.getElementById('toggle-button').disabled = false;
+            }
+        }
+
+        // Function to handle button click
+        document.getElementById('toggle-button').addEventListener('click', function () {
+            // Toggle pump state
+            togglePump();
+            const currentState = this.textContent;
+            this.textContent = currentState === 'Turn On Pump' ? 'Turn Off Pump' : 'Turn On Pump';
+        });
+
+        // Fetch moisture level every 2 seconds
+        setInterval(fetchMoistureLevel, 2000);
+    </script>
+
+</body>
+
+</html>
