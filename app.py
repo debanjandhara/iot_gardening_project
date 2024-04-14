@@ -2,6 +2,8 @@ import serial.tools.list_ports
 import serial
 from flask import Flask, jsonify
 from flask_cors import CORS
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -11,6 +13,9 @@ CORS(app)
 # Define serial port and baud rate
 serial_port = 'COM5'  # Adjust the port as needed
 baud_rate = 9600
+
+# Global variable to store moisture value
+moisture_level = 0
 
 def open_serial_port():
     try:
@@ -40,19 +45,45 @@ def pump_off():
     ser.write(b'0')  # Send command to Arduino to turn the pump off
     return 'Pump turned off'
 
+# Function to update moisture value from serial
+def update_moisture_value():
+    global moisture_level
+    while True:
+        moisture_data = ser.readline().decode('utf-8').strip()
+        print("Updated Moisture Value --> ", moisture_data)
+        try:
+            moisture_level = int(moisture_data)
+        except ValueError:
+            print("Error: Invalid moisture data received from serial.")
+        time.sleep(0.5)  # Wait for 1 second before reading again
+
+# Start a thread to continuously update moisture value
+update_thread = threading.Thread(target=update_moisture_value)
+update_thread.daemon = True
+update_thread.start()
+
+# Route to fetch moisture value
 @app.route('/moisture', methods=['POST'])
 def get_moisture():
-    # Read moisture data from Arduino
-    moisture_data = ser.readline().decode().strip()
-    
-    # Convert string to integer
-    # moisture_level = int(moisture_data)
-    moisture_level = moisture_data
-
-    # Process moisture data as needed
-    # For example, you can return it as JSON
-    print("Moisture Level : ",moisture_level)
+    print("Moisture Level : ", moisture_level)
     return jsonify({'moisture_level': moisture_level})  
+
+
+# @app.route('/moisture', methods=['POST'])
+# def get_moisture():
+#     # Read moisture data from Arduino
+#     moisture_data = ser.readline().decode().strip()
+    
+#     # Convert string to integer
+#     # moisture_level = int(moisture_data)
+#     moisture_level = moisture_data
+
+#     # Process moisture data as needed
+#     # For example, you can return it as JSON
+#     print("Moisture Level : ",moisture_level)
+#     return jsonify({'moisture_level': moisture_level})  
+
+
 
 if __name__ == '__main__':
     app.run()

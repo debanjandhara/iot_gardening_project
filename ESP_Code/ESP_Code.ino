@@ -76,5 +76,5 @@ void loop() {
       }
     }
 
-  delay(2000); // Wait for 1 minute before taking the next reading
+  delay(500); // Wait for 1 minute before taking the next reading
 }
