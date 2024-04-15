@@ -10,6 +10,8 @@ const int pumpPin = D1;         // Digital pin for controlling water pump
 // Threshold for soil moisture (adjust as needed)
 const int moistureThreshold = 500;
 
+int pump_auto = 0;
+
 void handleRelayOff() {
   digitalWrite(pumpPin, LOW);
 }
@@ -42,20 +44,19 @@ void loop() {
 
   // Read soil moisture level
   int moistureLevel = analogRead(soilMoisturePin);
+  // int moisturePercentage = map(moistureLevel, 1024, 556, 0, 100);
   int moisturePercentage = map(moistureLevel, 1024, 556, 0, 100);
 
   // Send moisture data over serial connection
   Serial.println(moisturePercentage);
 
   // Check if soil is dry
-  if (moisturePercentage < 60) {
-
-    // Activate water pump
-    digitalWrite(pumpPin, HIGH);
-    delay(1000); // Adjust watering duration as needed (5 seconds here)
-
-    // Deactivate water pump
-    digitalWrite(pumpPin, LOW);
+  if (pump_auto == 0) {
+    if (moisturePercentage < 40) {
+      handleRelayOn();
+    } else {
+      handleRelayOff();
+    }
   }
 
     if (Serial.available() > 0) {
@@ -65,9 +66,14 @@ void loop() {
       switch (receivedByte) {
         case '1':
           handleRelayOn();
+          pump_auto = 1;
           break;
         case '0':
           handleRelayOff();
+          pump_auto = 1;
+          break;
+        case '2':
+          pump_auto = 0;
           break;
         default:
           // Handle unknown command
@@ -76,5 +82,5 @@ void loop() {
       }
     }
 
-  delay(500); // Wait for 1 minute before taking the next reading
+  delay(800); // Wait for 1 minute before taking the next reading
 }

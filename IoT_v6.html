@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 Control Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Add custom style for disabled button */
+        #toggle-button[disabled],
+        #auto-toggle-button[disabled] {
+            background-color: #cccccc;
+            /* Gray color */
+            cursor: not-allowed;
+            /* Change cursor to indicate it's disabled */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-4">
+
+    <!-- Loader Screen -->
+    <div id="loader" class="fixed inset-0 flex items-center justify-center bg-white">
+        <div class="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+
+    <div class="max-w-xl mx-auto">
+
+        <!-- Moisture Level -->
+        <div class="mb-4">
+            <h1 class="text-xl font-bold mb-2">Moisture Level:</h1>
+            <p id="moisture-level" class="text-lg font-semibold">Loading...</p>
+        </div>
+
+        <!-- Pump Control -->
+        <div class="mb-4">
+            <h2 class="text-xl font-bold mb-2">Pump Control:</h2>
+            <button id="toggle-button" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Turn On Pump</button>
+            <!-- Pump Status -->
+            <div id="pump-status" class="text-lg font-semibold text-center mb-2">-</div>
+        </div>
+
+        <!-- Automatic Mode Control -->
+        <div class="mb-4">
+            <h2 class="text-xl font-bold mb-2">Automatic Mode Control:</h2>
+            <button id="auto-toggle-button" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Enable Automatic Mode</button>
+            <!-- Automatic Mode Status -->
+            <div id="auto-status" class="text-lg font-semibold text-center mb-2">-</div>
+        </div>
+
+    </div>
+
+    <script>
+        // Define the IP address of your ESP8266 backend
+        const backendUrl = 'https://2fd3-103-175-63-241.ngrok-free.app'; // Update the URL to match your Flask API
+
+        // Define a global variable to track automatic mode status
+        let automaticModeEnabled = true; // Assuming automatic mode is enabled by default
+
+        // Function to fetch moisture level and update UI
+        async function fetchMoistureLevel() {
+            try {
+                const response = await fetch(`${backendUrl}/moisture`, { method: 'POST' }); // Change to POST method
+                const data = await response.json();
+                document.getElementById('moisture-level').textContent = data.moisture_level;
+            } catch (error) {
+                console.error('Error fetching moisture level:', error);
+                // // Show pop-up and reload the page
+                // alert('Authentication failed. Reloading...');
+                // setTimeout(() => {
+                //     location.reload();
+                // }, 2000); // Reload after 2 seconds
+            }
+        }
+
+        // Function to toggle pump state
+        async function togglePump() {
+            try {
+                // Disable the button
+                document.getElementById('toggle-button').disabled = true;
+                // Display "Authenticating" text
+                document.getElementById('pump-status').textContent = 'Authenticating';
+
+                // Determine the URL based on the current pump state
+                const currentState = document.getElementById('toggle-button').textContent;
+                const url = currentState === 'Turn On Pump' ? `${backendUrl}/pump/on` : `${backendUrl}/pump/off`;
+
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.text();
+                console.log(data);
+
+                // Re-enable the button after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('toggle-button').disabled = false;
+                    // Show appropriate status message based on the action
+                    document.getElementById('pump-status').textContent = currentState === 'Turn On Pump' ? 'Pump Started' : 'Pump Switched Off';
+
+                    // If pump control button is clicked, automatic mode is disabled
+                    automaticModeEnabled = false;
+                    updateAutoModeStatus();
+                }, 500);
+            } catch (error) {
+                console.error('Error toggling pump:', error);
+                // Re-enable the button in case of error
+                document.getElementById('toggle-button').disabled = false;
+            }
+        }
+
+        // Function to toggle automatic mode
+        async function toggleAutoMode() {
+            try {
+                // Disable the button
+                document.getElementById('auto-toggle-button').disabled = true;
+                // Display "Authenticating" text
+                document.getElementById('auto-status').textContent = 'Authenticating';
+
+                const response = await fetch(`${backendUrl}/pump/auto`, { method: 'POST' });
+                const data = await response.text();
+                console.log(data);
+
+                // Re-enable the button after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('auto-toggle-button').disabled = false;
+                    // Update automatic mode status based on the response
+                    automaticModeEnabled = !automaticModeEnabled;
+                    updateAutoModeStatus();
+                }, 500);
+            } catch (error) {
+                console.error('Error toggling automatic mode:', error);
+                // Re-enable the button in case of error
+                document.getElementById('auto-toggle-button').disabled = false;
+            }
+        }
+
+        // Function to update automatic mode status
+        function updateAutoModeStatus() {
+            // Get the automatic mode status element
+            const autoStatusElement = document.getElementById('auto-status');
+
+            // Update the text based on automatic mode status
+            autoStatusElement.textContent = automaticModeEnabled ? 'Automatic Mode Enabled' : 'Automatic Mode Disabled';
+        }
+
+        // Function to handle button click
+        document.getElementById('toggle-button').addEventListener('click', function () {
+            // Toggle pump state
+            togglePump();
+            const currentState = this.textContent;
+            this.textContent = currentState === 'Turn On Pump' ? 'Turn Off Pump' : 'Turn On Pump';
+        });
+
+        // Function to handle automatic mode button click
+        document.getElementById('auto-toggle-button').addEventListener('click', function () {
+            // Toggle automatic mode
+            toggleAutoMode();
+        });
+
+        // Fetch moisture level every 2 seconds
+        setInterval(fetchMoistureLevel, 1000);
+
+        // Wait for 5 seconds before displaying the actual page
+        setTimeout(() => {
+            document.body.style.display = 'block'; // Show the body
+            document.getElementById('loader').style.display = 'none'; // Hide the loader
+
+            // Update automatic mode status when page loads
+            updateAutoModeStatus();
+        }, 1000);
+    </script>
+
+</body>
+
+</html>

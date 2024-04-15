@@ -45,6 +45,11 @@ def pump_off():
     ser.write(b'0')  # Send command to Arduino to turn the pump off
     return 'Pump turned off'
 
+@app.route('/pump/auto', methods=['POST'])
+def pump_auto():
+    ser.write(b'2')  # Send command to Arduino to turn the pump off
+    return 'Auto Pump Control'
+
 # Function to update moisture value from serial
 def update_moisture_value():
     global moisture_level
@@ -66,23 +71,7 @@ update_thread.start()
 @app.route('/moisture', methods=['POST'])
 def get_moisture():
     print("Moisture Level : ", moisture_level)
-    return jsonify({'moisture_level': moisture_level})  
-
-
-# @app.route('/moisture', methods=['POST'])
-# def get_moisture():
-#     # Read moisture data from Arduino
-#     moisture_data = ser.readline().decode().strip()
-    
-#     # Convert string to integer
-#     # moisture_level = int(moisture_data)
-#     moisture_level = moisture_data
-
-#     # Process moisture data as needed
-#     # For example, you can return it as JSON
-#     print("Moisture Level : ",moisture_level)
-#     return jsonify({'moisture_level': moisture_level})  
-
+    return jsonify({'moisture_level': moisture_level})
 
 
 if __name__ == '__main__':
