@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>
 
-const char* ssid = "BroadBand_D-Link-615";
-const char* password = "riki@123";
+const char* ssid = "test";
+const char* password = "testtest";
 
 // Pin definitions
 const int soilMoisturePin = A0; // Analog pin for soil moisture sensor
@@ -45,7 +45,7 @@ void loop() {
   // Read soil moisture level
   int moistureLevel = analogRead(soilMoisturePin);
   // int moisturePercentage = map(moistureLevel, 1024, 556, 0, 100);
-  int moisturePercentage = map(moistureLevel, 1024, 556, 0, 100);
+  int moisturePercentage = map(moistureLevel, 1024, 0, 0, 100);
 
   // Send moisture data over serial connection
   Serial.println(moisturePercentage);
